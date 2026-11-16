@@ -29,7 +29,7 @@ jobs:
       - name: Install System Dependencies (FFmpeg & Chrome)
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core xvfb
           if ! command -v google-chrome &> /dev/null; then
             wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
             echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
@@ -67,7 +67,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           FPS: "30"
         run: |
-          python pipeline_3d/main_3d.py --render-only
+          xvfb-run -a python pipeline_3d/main_3d.py --render-only
 
       - name: Create GitHub Release for Direct Video Hosting
         if: success()
@@ -111,4 +111,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add pipeline_3d/state_3d.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update 3D topic queue [skip ci]" && git push)
+          if ! git diff --cached --quiet; then
+            git commit -m "Auto-update 3D topic queue [skip ci]"
+            git push
+          fi

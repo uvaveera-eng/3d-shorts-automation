@@ -36,9 +36,30 @@ def ensure_models():
     KDIR.mkdir(parents=True, exist_ok=True)
     for name, url in FILES.items():
         p = KDIR / name
-        if p.exists() and p.stat().st_size > 1_000_000: continue
+        if p.exists() and p.stat().st_size > 1_000_000:
+            continue
         print(f'downloading {name} (once)...', flush=True)
-        tmp = p.with_suffix('.part'); urllib.request.urlretrieve(url, tmp); tmp.rename(p)
+        # Try curl first (fastest on Linux/GitHub Actions)
+        try:
+            import subprocess
+            subprocess.run(['curl', '-L', '--retry', '3', '-s', '-o', str(p), url], check=True, timeout=120)
+            if p.exists() and p.stat().st_size > 1_000_000:
+                print(f'  -> {name} downloaded successfully via curl')
+                continue
+        except Exception:
+            pass
+
+        # Python streaming fallback with User-Agent
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        tmp = p.with_suffix('.part')
+        with urllib.request.urlopen(req, timeout=60) as resp, open(tmp, 'wb') as f:
+            while True:
+                chunk = resp.read(1024 * 1024)
+                if not chunk:
+                    break
+                f.write(chunk)
+        tmp.rename(p)
+        print(f'  -> {name} downloaded successfully via streaming')
 
 
 def trim(x, thr=0.008):

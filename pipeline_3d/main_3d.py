@@ -78,20 +78,12 @@ def render_phase(base_dir: str):
     # 2. Synthesize Voiceover via Kokoro TTS
     print("\n[STEP 2] Synthesizing Studio Voiceover (Kokoro-82M TTS)...")
     voice_py = str(scripts_dir / "voice.py")
-    res_voice = subprocess.run([sys.executable, voice_py, str(engine_dir)], capture_output=True, text=True)
-    if res_voice.returncode != 0:
-        print("[ERROR] Voice synthesis failed:", res_voice.stderr)
-        sys.exit(1)
-    print("  -> " + res_voice.stdout.strip().split("\n")[-1])
+    subprocess.run([sys.executable, voice_py, str(engine_dir)], check=True)
 
     # 3. Whisper Word Alignment
     print("\n[STEP 3] Pinning Millisecond Subtitle Alignment (Whisper AI)...")
     words_py = str(scripts_dir / "words.py")
-    res_words = subprocess.run([sys.executable, words_py, str(engine_dir)], capture_output=True, text=True)
-    if res_words.returncode != 0:
-        print("[ERROR] Whisper alignment failed:", res_words.stderr)
-        sys.exit(1)
-    print("  -> " + res_words.stdout.strip().split("\n")[-1])
+    subprocess.run([sys.executable, words_py, str(engine_dir)], check=True)
 
     # 4. Sound Design & Cue Mix
     print("\n[STEP 4] Synthesizing Procedural Audio Cues & Sound Bed...")
@@ -109,11 +101,7 @@ def render_phase(base_dir: str):
 
     env = os.environ.copy()
     env["FPS"] = str(fps)
-    res_render = subprocess.run(["node", capture_mjs, "video", render_target], cwd=str(engine_dir), env=env, capture_output=True, text=True)
-    if res_render.returncode != 0:
-        print("[ERROR] 3D Video render failed:", res_render.stderr)
-        sys.exit(1)
-    print("  -> " + res_render.stdout.strip().split("\n")[-1])
+    subprocess.run(["node", capture_mjs, "video", render_target], cwd=str(engine_dir), env=env, check=True)
 
     # Copy output to root final_reel.mp4
     shutil.copy2(render_target, final_output_mp4)

@@ -54,7 +54,11 @@ jobs:
       - name: Pre-download Models (If Not Cached)
         if: steps.cache-models.outputs.cache-hit != 'true'
         run: |
-          python pipeline_3d/scripts/voice.py --download || true
+          mkdir -p ~/.faceless-shorts/kokoro
+          echo "Downloading Kokoro TTS models with curl..."
+          curl -L --retry 3 -o ~/.faceless-shorts/kokoro/kokoro-v1.0.onnx https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
+          curl -L --retry 3 -o ~/.faceless-shorts/kokoro/voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
+          echo "Pre-caching Whisper small.en model..."
           python -c "from faster_whisper import WhisperModel; WhisperModel('small.en', device='cpu', compute_type='int8')"
 
       - name: Generate and Render 3D Video (Phase 1)

@@ -10,9 +10,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 export const W = 1080, H = 1920;
-/** render quality from the URL: ?res=0.6 renders 3D at 60% size (upscaled), ?aa=0 turns MSAA off, ?shadow=1024 */
+/** render quality from the URL: ?res=0.65 renders 3D at 65% size (upscaled), ?aa=1 turns MSAA to 1, ?shadow=1024 */
 const Q = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
-export const RES = +(Q.get('res') || 1), AA = +(Q.get('aa') ?? 4), SHADOW = +(Q.get('shadow') || 2048);
+export const RES = +(Q.get('res') || 0.65), AA = +(Q.get('aa') ?? 1), SHADOW = +(Q.get('shadow') || 1024);
 const GRADE = {
   uniforms: { tDiffuse: { value: null }, uVig: { value: 0.35 }, uGrain: { value: 0.025 }, uTime: { value: 0 }, uWarm: { value: 0.04 } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',

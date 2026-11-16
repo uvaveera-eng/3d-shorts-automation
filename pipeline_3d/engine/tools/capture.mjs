@@ -72,7 +72,8 @@ async function openPage(port) {
     }
   }
   if (!dbg) throw new Error('Chrome did not start. Logs: ' + chromeErr);
-  const r = await fetch(`http://127.0.0.1:${dbg}/json/new?${encodeURIComponent(`http://127.0.0.1:${port}/index.html?capture=1${process.env.QS || ''}`)}`, { method: 'PUT' });
+  const qs = process.env.QS || '&res=0.65&aa=1&shadow=1024';
+  const r = await fetch(`http://127.0.0.1:${dbg}/json/new?${encodeURIComponent(`http://127.0.0.1:${port}/index.html?capture=1${qs}`)}`, { method: 'PUT' });
   const target = await r.json();
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
@@ -134,16 +135,23 @@ else {
       const mix = path.join(ROOT, 'data/mix.wav'), hasMix = fs.existsSync(mix), a0 = rest[1] ? +rest[1] : 0, a1 = rest[2] ? Math.min(+rest[2], dur) : dur, n = Math.round((a1 - a0) * FPS);
       const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-framerate', String(FPS), '-i', '-',
         ...(hasMix ? ['-ss', String(a0), '-t', String(a1 - a0), '-i', mix] : ['-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo']), '-map', '0:v', '-map', '1:a',
-        '-c:v', 'libx264', '-preset', flags.has('--draft') ? 'ultrafast' : 'veryfast', '-crf', flags.has('--draft') ? '28' : '18', '-pix_fmt', 'yuv420p',
+        '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '22', '-pix_fmt', 'yuv420p',
         '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
       const t0 = Date.now();
+      console.log(`Starting 3D frame capture (${n} frames at ${FPS} fps)...`);
       for (let i = 0; i < n; i++) {
-        const b = jpg(await P.ev(FRAME(a0 + i / FPS, flags.has('--draft') ? 0.8 : 0.93)));
+        const b = jpg(await P.ev(FRAME(a0 + i / FPS, 0.85)));
         if (!ff.stdin.write(b)) await new Promise((r) => ff.stdin.once('drain', r));
-        if (i % 150 === 0) process.stdout.write(`\r${i}/${n} frames`);
+        if (i % 30 === 0 || i === n - 1) {
+          const elapsed = (Date.now() - t0) / 1000 || 1;
+          const fpsCurr = (i / elapsed).toFixed(1);
+          const pct = Math.round((i / n) * 100);
+          const rem = Math.max(0, Math.round((n - i) / (i / elapsed || 1)));
+          console.log(`[3D Render] Frame ${i}/${n} (${pct}%) @ ${fpsCurr} fps (~${rem}s left)`);
+        }
       }
       ff.stdin.end(); await new Promise((r) => ff.on('close', r));
-      console.log(`\r${out} (${n} frames, ${hasMix ? 'with data/mix.wav' : 'SILENT: no data/mix.wav'}, ${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+      console.log(`\n[SUCCESS] Rendered ${out} (${n} frames, ${((Date.now() - t0) / 1000).toFixed(0)} s total)`);
     } else console.log('modes: check · cues · sheet · frames · video · preview');
   } finally { P.close(); srv.close(); }
 }

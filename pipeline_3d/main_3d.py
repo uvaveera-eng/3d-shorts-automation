@@ -101,6 +101,7 @@ def render_phase(base_dir: str):
 
     env = os.environ.copy()
     env["FPS"] = str(fps)
+    env["QS"] = os.environ.get("QS", "&res=0.65&aa=1&shadow=1024")
     subprocess.run(["node", capture_mjs, "video", render_target], cwd=str(engine_dir), env=env, check=True)
 
     # Copy output to root final_reel.mp4

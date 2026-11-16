@@ -66,6 +66,7 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           FPS: "30"
+          QS: "&res=0.65&aa=1&shadow=1024"
         run: |
           xvfb-run -a python pipeline_3d/main_3d.py --render-only
 

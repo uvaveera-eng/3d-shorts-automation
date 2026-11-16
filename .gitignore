@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+*.mp4
+*.wav
+*.mp3
+final_reel.mp4
+metadata.json
+*.log
+pipeline_3d/engine/renders/
+pipeline_3d/engine/review/
+pipeline_3d/engine/data/*.wav
+youtube_token.json

@@ -1,0 +1,68 @@
+{
+  "title": "What Happens If You Swallow Chewing Gum?",
+  "voice": "am_michael",
+  "speed": 1.02,
+  "lead": 0.35,
+  "outro": 1.0,
+  "gap": 0.26,
+  "music": "tension",
+  "sources": [
+    "Mayo Clinic, 'Is swallowing gum harmful?' (gum base is indigestible but passes naturally)",
+    "American Academy of Pediatrics (foreign body ingestion)"
+  ],
+  "lines": [
+    {
+      "text": "You've probably heard that swallowing gum takes seven years to digest.",
+      "caps": "Swallowing *gum | takes *7 years | to *digest?"
+    },
+    {
+      "text": "Well, that is completely false.",
+      "caps": "Well, that is | *completely *false"
+    },
+    {
+      "text": "When you swallow gum, it slides down your esophagus into your stomach.",
+      "caps": "Slides down | your *esophagus | into your *stomach"
+    },
+    {
+      "text": "Your powerful stomach acids break down the sweeteners and flavorings,",
+      "caps": "Stomach *acids | break down *sweeteners | and *flavors"
+    },
+    {
+      "text": "but your body cannot dissolve the rubbery gum base.",
+      "caps": "Cannot *dissolve | the rubbery *gum base"
+    },
+    {
+      "text": "Instead of staying stuck for seven years,",
+      "caps": "Instead of *staying stuck | for *7 years"
+    },
+    {
+      "text": "your digestive muscles keep contracting,",
+      "caps": "Digestive *muscles | keep *contracting"
+    },
+    {
+      "text": "pushing it through your intestines just like normal food.",
+      "caps": "Pushing it | through your *intestines | like normal *food"
+    },
+    {
+      "text": "Within a few days, it quietly leaves your body.",
+      "caps": "Within a *few days | it *quietly *leaves | your *body"
+    },
+    {
+      "text": "Just don't swallow a huge wad at once, or it could cause a blockage.",
+      "caps": "Never swallow | a *huge wad | could cause a *blockage",
+      "gap": 0.2
+    }
+  ],
+  "metadata": {
+    "title": "What Happens If You Swallow Gum? (Truth Revealed) #shorts",
+    "description": "Does swallowing chewing gum really stay in your body for 7 years? Here's the science breakdown of what actually happens inside your digestive system. #shorts #science #facts #animation",
+    "tags": [
+      "shorts",
+      "science",
+      "facts",
+      "animation",
+      "health",
+      "human body"
+    ]
+  }
+}

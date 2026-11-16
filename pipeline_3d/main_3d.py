@@ -69,44 +69,59 @@ def render_phase(base_dir: str):
     script_data = generate_3d_script(gemini_key, state.get("past_topics", []))
     topic = script_data.get("title", "What Happens If...?")
 
-    # Write script.json to engine
-    script_path = engine_dir / "script.json"
-    with open(script_path, "w", encoding="utf-8") as f:
-        json.dump(script_data, f, indent=2)
-    print(f"  -> Saved script to {script_path}")
+    # Check for Modal GPU acceleration
+    modal_rendered = False
+    if os.environ.get("MODAL_TOKEN_ID") and os.environ.get("MODAL_TOKEN_SECRET"):
+        print("\n🚀 [MODAL GPU] Detected Modal credentials! Dispatching 3D render to Nvidia T4 GPU...")
+        try:
+            from pipeline_3d.modal_render import render_video_gpu
+            res = render_video_gpu.remote(script_data, fps=int(fps))
+            with open(final_output_mp4, "wb") as f:
+                f.write(res["video_bytes"])
+            print(f"\n[SUCCESS] Modal GPU rendered 3D short to: {final_output_mp4} ({res['size'] / (1024*1024):.1f} MB)")
+            modal_rendered = True
+        except Exception as e:
+            print(f"[WARN] Modal GPU render failed: {e}. Falling back to standard runner...")
 
-    # 2. Synthesize Voiceover via Kokoro TTS
-    print("\n[STEP 2] Synthesizing Studio Voiceover (Kokoro-82M TTS)...")
-    voice_py = str(scripts_dir / "voice.py")
-    subprocess.run([sys.executable, voice_py, str(engine_dir)], check=True)
+    if not modal_rendered:
+        # Write script.json to engine
+        script_path = engine_dir / "script.json"
+        with open(script_path, "w", encoding="utf-8") as f:
+            json.dump(script_data, f, indent=2)
+        print(f"  -> Saved script to {script_path}")
 
-    # 3. Whisper Word Alignment
-    print("\n[STEP 3] Pinning Millisecond Subtitle Alignment (Whisper AI)...")
-    words_py = str(scripts_dir / "words.py")
-    subprocess.run([sys.executable, words_py, str(engine_dir)], check=True)
+        # 2. Synthesize Voiceover via Kokoro TTS
+        print("\n[STEP 2] Synthesizing Studio Voiceover (Kokoro-82M TTS)...")
+        voice_py = str(scripts_dir / "voice.py")
+        subprocess.run([sys.executable, voice_py, str(engine_dir)], check=True)
 
-    # 4. Sound Design & Cue Mix
-    print("\n[STEP 4] Synthesizing Procedural Audio Cues & Sound Bed...")
-    capture_mjs = str(engine_dir / "tools" / "capture.mjs")
-    mix_py = str(engine_dir / "tools" / "mix.py")
-    subprocess.run(["node", capture_mjs, "cues"], cwd=str(engine_dir), check=True)
-    subprocess.run([sys.executable, mix_py, str(engine_dir)], cwd=str(engine_dir), check=True)
-    print("  -> Mixed data/mix.wav with procedural audio cues")
+        # 3. Whisper Word Alignment
+        print("\n[STEP 3] Pinning Millisecond Subtitle Alignment (Whisper AI)...")
+        words_py = str(scripts_dir / "words.py")
+        subprocess.run([sys.executable, words_py, str(engine_dir)], check=True)
 
-    # 5. Headless Chrome 3D Canvas Capture + FFmpeg Video Encoding
-    print(f"\n[STEP 5] Headless 3D Render at 1080x1920 @ {fps}fps...")
-    renders_dir = engine_dir / "renders"
-    renders_dir.mkdir(exist_ok=True)
-    render_target = str(renders_dir / "output.mp4")
+        # 4. Sound Design & Cue Mix
+        print("\n[STEP 4] Synthesizing Procedural Audio Cues & Sound Bed...")
+        capture_mjs = str(engine_dir / "tools" / "capture.mjs")
+        mix_py = str(engine_dir / "tools" / "mix.py")
+        subprocess.run(["node", capture_mjs, "cues"], cwd=str(engine_dir), check=True)
+        subprocess.run([sys.executable, mix_py, str(engine_dir)], cwd=str(engine_dir), check=True)
+        print("  -> Mixed data/mix.wav with procedural audio cues")
 
-    env = os.environ.copy()
-    env["FPS"] = str(fps)
-    env["QS"] = os.environ.get("QS", "&res=0.65&aa=1&shadow=1024")
-    subprocess.run(["node", capture_mjs, "video", render_target], cwd=str(engine_dir), env=env, check=True)
+        # 5. Headless Chrome 3D Canvas Capture + FFmpeg Video Encoding
+        print(f"\n[STEP 5] Headless 3D Render at 1080x1920 @ {fps}fps...")
+        renders_dir = engine_dir / "renders"
+        renders_dir.mkdir(exist_ok=True)
+        render_target = str(renders_dir / "output.mp4")
 
-    # Copy output to root final_reel.mp4
-    shutil.copy2(render_target, final_output_mp4)
-    print(f"\n[SUCCESS] Rendered final 3D short to: {final_output_mp4}")
+        env = os.environ.copy()
+        env["FPS"] = str(fps)
+        env["QS"] = os.environ.get("QS", "&res=0.65&aa=1&shadow=1024")
+        subprocess.run(["node", capture_mjs, "video", render_target], cwd=str(engine_dir), env=env, check=True)
+
+        # Copy output to root final_reel.mp4
+        shutil.copy2(render_target, final_output_mp4)
+        print(f"\n[SUCCESS] Rendered final 3D short to: {final_output_mp4}")
 
     # Prepare metadata for publishing
     meta_info = script_data.get("metadata", {})

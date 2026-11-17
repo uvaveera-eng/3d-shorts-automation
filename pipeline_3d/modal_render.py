@@ -6,7 +6,8 @@ import subprocess
 from pathlib import Path
 import modal
 
-app = modal.App("3d-shorts-renderer")
+gpu_app = modal.App("3d-shorts-gpu")
+cpu_app = modal.App("3d-shorts-cpu")
 
 # Build lightweight Debian image with Chrome, Node 22, FFmpeg, and Python AI libs
 image = (
@@ -87,7 +88,7 @@ def _do_render(script_data: dict, shots_code: str = None, fps: int = 30, use_gpu
     return {"video_bytes": video_bytes, "size": len(video_bytes)}
 
 
-@app.function(
+@gpu_app.function(
     image=image,
     gpu="T4",
     timeout=600,
@@ -97,7 +98,7 @@ def render_video_gpu(script_data: dict, shots_code: str = None, fps: int = 30) -
     return _do_render(script_data, shots_code, fps, use_gpu=True)
 
 
-@app.function(
+@cpu_app.function(
     image=image,
     cpu=4.0,
     timeout=600,

@@ -87,22 +87,24 @@ def render_phase(base_dir: str):
     if os.environ.get("MODAL_TOKEN_ID") and os.environ.get("MODAL_TOKEN_SECRET"):
         print("\n🚀 [MODAL] Detected Modal credentials! Dispatching 3D render to Modal Cloud...")
         try:
-            from pipeline_3d.modal_render import app, render_video_gpu, render_video_cpu
-            with app.run():
-                try:
-                    print("  -> Attempting Nvidia T4 GPU serverless render...")
+            from pipeline_3d.modal_render import gpu_app, cpu_app, render_video_gpu, render_video_cpu
+            # 1. Try Nvidia T4 GPU first
+            try:
+                print("  -> Attempting Nvidia T4 GPU serverless render...")
+                with gpu_app.run():
                     res = render_video_gpu.remote(script_data, shots_code=shots_code, fps=int(fps))
-                    modal_rendered = True
-                    print(f"\n[SUCCESS] Modal GPU rendered 3D short to: {final_output_mp4} ({res['size'] / (1024*1024):.1f} MB)")
-                except Exception as gpu_err:
-                    print(f"[WARN] Modal GPU unavailable ({gpu_err}). Attempting Modal High-Speed 4-vCPU Cloud container...")
+                modal_rendered = True
+                print(f"\n[SUCCESS] Modal GPU rendered 3D short to: {final_output_mp4} ({res['size'] / (1024*1024):.1f} MB)")
+            except Exception as gpu_err:
+                print(f"[WARN] Modal GPU unavailable ({gpu_err}). Attempting Modal High-Speed 4-vCPU Cloud container...")
+                with cpu_app.run():
                     res = render_video_cpu.remote(script_data, shots_code=shots_code, fps=int(fps))
-                    modal_rendered = True
-                    print(f"\n[SUCCESS] Modal Cloud CPU rendered 3D short to: {final_output_mp4} ({res['size'] / (1024*1024):.1f} MB)")
+                modal_rendered = True
+                print(f"\n[SUCCESS] Modal Cloud CPU rendered 3D short to: {final_output_mp4} ({res['size'] / (1024*1024):.1f} MB)")
 
-                if modal_rendered:
-                    with open(final_output_mp4, "wb") as f:
-                        f.write(res["video_bytes"])
+            if modal_rendered:
+                with open(final_output_mp4, "wb") as f:
+                    f.write(res["video_bytes"])
         except Exception as e:
             print(f"[WARN] Modal Cloud render failed: {e}. Falling back to standard runner...")
 

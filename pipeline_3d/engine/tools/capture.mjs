@@ -40,7 +40,7 @@ function serve(port = 0) {
 async function openPage(port) {
   if (!CHROME) throw new Error('Chrome not found: install Google Chrome or set CHROME=/path/to/chrome');
   const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'fs-chrome-'));
-  const chrome = spawn(CHROME, [
+  const chromeFlags = [
     '--headless=new',
     '--remote-debugging-port=0',
     `--user-data-dir=${prof}`,
@@ -52,12 +52,18 @@ async function openPage(port) {
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
     '--ignore-gpu-blocklist',
-    '--enable-unsafe-swiftshader',
-    '--use-angle=swiftshader',
     '--disable-background-timer-throttling',
-    '--disable-renderer-backgrounding',
-    'about:blank'
-  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+    '--disable-renderer-backgrounding'
+  ];
+
+  if (process.env.USE_GPU === '1') {
+    chromeFlags.push('--enable-gpu-rasterization', '--enable-zero-copy', '--use-gl=angle', '--use-angle=vulkan');
+  } else {
+    chromeFlags.push('--enable-unsafe-swiftshader', '--use-angle=swiftshader');
+  }
+  chromeFlags.push('about:blank');
+
+  const chrome = spawn(CHROME, chromeFlags, { stdio: ['ignore', 'pipe', 'pipe'] });
 
   let chromeErr = '';
   chrome.stderr?.on('data', (d) => { chromeErr += d.toString(); });

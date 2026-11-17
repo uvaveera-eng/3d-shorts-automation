@@ -69,13 +69,26 @@ def render_phase(base_dir: str):
     script_data = generate_3d_script(gemini_key, state.get("past_topics", []))
     topic = script_data.get("title", "What Happens If...?")
 
+    # Save script.json to engine
+    script_path = engine_dir / "script.json"
+    with open(script_path, "w", encoding="utf-8") as f:
+        json.dump(script_data, f, indent=2)
+    print(f"  -> Saved script to {script_path}")
+
+    # Generate custom topic-matched 3D choreography (shots.js)
+    from pipeline_3d.director import generate_dynamic_shots_js
+    shots_path = engine_dir / "src" / "shots.js"
+    print(f"\n🎬 [DIRECTOR] Generating customized 3D scene choreography for: '{topic}'...")
+    generate_dynamic_shots_js(gemini_key, script_data, shots_path)
+    shots_code = shots_path.read_text(encoding="utf-8")
+
     # Check for Modal GPU acceleration
     modal_rendered = False
     if os.environ.get("MODAL_TOKEN_ID") and os.environ.get("MODAL_TOKEN_SECRET"):
         print("\n🚀 [MODAL GPU] Detected Modal credentials! Dispatching 3D render to Nvidia T4 GPU...")
         try:
             from pipeline_3d.modal_render import render_video_gpu
-            res = render_video_gpu.remote(script_data, fps=int(fps))
+            res = render_video_gpu.remote(script_data, shots_code=shots_code, fps=int(fps))
             with open(final_output_mp4, "wb") as f:
                 f.write(res["video_bytes"])
             print(f"\n[SUCCESS] Modal GPU rendered 3D short to: {final_output_mp4} ({res['size'] / (1024*1024):.1f} MB)")
@@ -84,12 +97,6 @@ def render_phase(base_dir: str):
             print(f"[WARN] Modal GPU render failed: {e}. Falling back to standard runner...")
 
     if not modal_rendered:
-        # Write script.json to engine
-        script_path = engine_dir / "script.json"
-        with open(script_path, "w", encoding="utf-8") as f:
-            json.dump(script_data, f, indent=2)
-        print(f"  -> Saved script to {script_path}")
-
         # 2. Synthesize Voiceover via Kokoro TTS
         print("\n[STEP 2] Synthesizing Studio Voiceover (Kokoro-82M TTS)...")
         voice_py = str(scripts_dir / "voice.py")

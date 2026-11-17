@@ -171,7 +171,7 @@ Make every line punchy, educational, and scientifically accurate.
 """
 
     if api_key:
-        candidate_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+        candidate_models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-latest"]
         for model in candidate_models:
             try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
@@ -191,6 +191,9 @@ Make every line punchy, educational, and scientifically accurate.
                 if "lines" in parsed and "title" in parsed:
                     print(f"[SUCCESS] Gemini ({model}) generated fresh 3D script: '{parsed.get('title')}'")
                     return parsed
+            except urllib.error.HTTPError as he:
+                body = he.read().decode("utf-8", errors="ignore")
+                print(f"[WARN] Gemini model {model} attempt failed: {he} - {body[:150]}")
             except Exception as err:
                 print(f"[WARN] Gemini model {model} attempt failed: {err}")
 

@@ -82,19 +82,30 @@ def render_phase(base_dir: str):
     generate_dynamic_shots_js(gemini_key, script_data, shots_path)
     shots_code = shots_path.read_text(encoding="utf-8")
 
-    # Check for Modal GPU acceleration
+    # Check for Modal Cloud acceleration (GPU or High-Speed Cloud CPU)
     modal_rendered = False
     if os.environ.get("MODAL_TOKEN_ID") and os.environ.get("MODAL_TOKEN_SECRET"):
-        print("\n🚀 [MODAL GPU] Detected Modal credentials! Dispatching 3D render to Nvidia T4 GPU...")
+        print("\n🚀 [MODAL] Detected Modal credentials! Dispatching 3D render to Modal Cloud...")
         try:
             from pipeline_3d.modal_render import render_video_gpu
+            print("  -> Attempting Nvidia T4 GPU serverless render...")
             res = render_video_gpu.remote(script_data, shots_code=shots_code, fps=int(fps))
             with open(final_output_mp4, "wb") as f:
                 f.write(res["video_bytes"])
             print(f"\n[SUCCESS] Modal GPU rendered 3D short to: {final_output_mp4} ({res['size'] / (1024*1024):.1f} MB)")
             modal_rendered = True
         except Exception as e:
-            print(f"[WARN] Modal GPU render failed: {e}. Falling back to standard runner...")
+            print(f"[WARN] Modal GPU render unavailable: {e}")
+            print("  -> Attempting Modal High-Speed 4-vCPU Parallel Cloud render...")
+            try:
+                from pipeline_3d.modal_render import render_video_cpu
+                res = render_video_cpu.remote(script_data, shots_code=shots_code, fps=int(fps))
+                with open(final_output_mp4, "wb") as f:
+                    f.write(res["video_bytes"])
+                print(f"\n[SUCCESS] Modal Cloud CPU rendered 3D short to: {final_output_mp4} ({res['size'] / (1024*1024):.1f} MB)")
+                modal_rendered = True
+            except Exception as e2:
+                print(f"[WARN] Modal Cloud CPU also failed: {e2}. Falling back to standard runner...")
 
     if not modal_rendered:
         # 2. Synthesize Voiceover via Kokoro TTS

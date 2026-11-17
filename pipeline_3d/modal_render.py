@@ -36,13 +36,8 @@ image = (
 )
 
 
-@app.function(
-    image=image,
-    gpu="T4",
-    timeout=600,
-)
-def render_video_gpu(script_data: dict, shots_code: str = None, fps: int = 30) -> dict:
-    """Renders the 3D video using an Nvidia T4 GPU on Modal."""
+def _do_render(script_data: dict, shots_code: str = None, fps: int = 30, use_gpu: bool = False) -> dict:
+    """Internal render routine executed inside Modal container."""
     base_dir = "/root/pipeline_3d"
     engine_dir = os.path.join(base_dir, "engine")
     scripts_dir = os.path.join(base_dir, "scripts")
@@ -71,12 +66,13 @@ def render_video_gpu(script_data: dict, shots_code: str = None, fps: int = 30) -
     subprocess.run(["xvfb-run", "-a", "node", capture_mjs, "cues"], cwd=engine_dir, check=True)
     subprocess.run(["python3", mix_py, engine_dir], cwd=engine_dir, check=True)
 
-    # 5. Headless Chrome GPU Render
+    # 5. Headless Chrome Render
     output_mp4 = os.path.join(engine_dir, "renders", "output.mp4")
     os.makedirs(os.path.dirname(output_mp4), exist_ok=True)
     env = os.environ.copy()
     env["FPS"] = str(fps)
-    env["USE_GPU"] = "1"
+    if use_gpu:
+        env["USE_GPU"] = "1"
 
     subprocess.run(
         ["xvfb-run", "-a", "node", capture_mjs, "video", output_mp4],
@@ -89,3 +85,23 @@ def render_video_gpu(script_data: dict, shots_code: str = None, fps: int = 30) -
         video_bytes = f.read()
 
     return {"video_bytes": video_bytes, "size": len(video_bytes)}
+
+
+@app.function(
+    image=image,
+    gpu="T4",
+    timeout=600,
+)
+def render_video_gpu(script_data: dict, shots_code: str = None, fps: int = 30) -> dict:
+    """Renders the 3D video using an Nvidia T4 GPU on Modal."""
+    return _do_render(script_data, shots_code, fps, use_gpu=True)
+
+
+@app.function(
+    image=image,
+    cpu=4.0,
+    timeout=600,
+)
+def render_video_cpu(script_data: dict, shots_code: str = None, fps: int = 30) -> dict:
+    """Renders the 3D video using high-speed 4-vCPU parallel container on Modal."""
+    return _do_render(script_data, shots_code, fps, use_gpu=False)

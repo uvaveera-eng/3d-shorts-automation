@@ -100,9 +100,9 @@ def render_video_gpu(script_data: dict, shots_code: str = None, fps: int = 30) -
 
 @cpu_app.function(
     image=image,
-    cpu=4.0,
-    timeout=600,
+    cpu=8.0,
+    timeout=1200,
 )
 def render_video_cpu(script_data: dict, shots_code: str = None, fps: int = 30) -> dict:
-    """Renders the 3D video using high-speed 4-vCPU parallel container on Modal."""
+    """Renders the 3D video using high-speed 8-vCPU parallel container on Modal."""
     return _do_render(script_data, shots_code, fps, use_gpu=False)

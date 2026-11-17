@@ -197,7 +197,7 @@ def publish_phase(base_dir: str, video_url: str):
     if video_url and ig_user_id and ig_token and post_to_instagram_reels:
         try:
             print("\n[2] Uploading to Instagram Reels...")
-            ig_res = post_to_instagram_reels(ig_user_id, ig_token, video_url, f"{title}\n\n{description}")
+            ig_res = post_to_instagram_reels(ig_user_id, ig_token, video_url, title, description)
             print("  Instagram Result:", ig_res)
         except Exception as e:
             print(f"  Instagram Upload Error: {e}")

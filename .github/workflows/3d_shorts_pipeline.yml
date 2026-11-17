@@ -113,8 +113,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main || true
           git add pipeline_3d/state_3d.json
           if ! git diff --cached --quiet; then
             git commit -m "Auto-update 3D topic queue [skip ci]"
-            git push
+            git push origin main || true
           fi

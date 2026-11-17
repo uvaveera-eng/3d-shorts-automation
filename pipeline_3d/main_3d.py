@@ -87,25 +87,24 @@ def render_phase(base_dir: str):
     if os.environ.get("MODAL_TOKEN_ID") and os.environ.get("MODAL_TOKEN_SECRET"):
         print("\n🚀 [MODAL] Detected Modal credentials! Dispatching 3D render to Modal Cloud...")
         try:
-            from pipeline_3d.modal_render import render_video_gpu
-            print("  -> Attempting Nvidia T4 GPU serverless render...")
-            res = render_video_gpu.remote(script_data, shots_code=shots_code, fps=int(fps))
-            with open(final_output_mp4, "wb") as f:
-                f.write(res["video_bytes"])
-            print(f"\n[SUCCESS] Modal GPU rendered 3D short to: {final_output_mp4} ({res['size'] / (1024*1024):.1f} MB)")
-            modal_rendered = True
+            from pipeline_3d.modal_render import app, render_video_gpu, render_video_cpu
+            with app.run():
+                try:
+                    print("  -> Attempting Nvidia T4 GPU serverless render...")
+                    res = render_video_gpu.remote(script_data, shots_code=shots_code, fps=int(fps))
+                    modal_rendered = True
+                    print(f"\n[SUCCESS] Modal GPU rendered 3D short to: {final_output_mp4} ({res['size'] / (1024*1024):.1f} MB)")
+                except Exception as gpu_err:
+                    print(f"[WARN] Modal GPU unavailable ({gpu_err}). Attempting Modal High-Speed 4-vCPU Cloud container...")
+                    res = render_video_cpu.remote(script_data, shots_code=shots_code, fps=int(fps))
+                    modal_rendered = True
+                    print(f"\n[SUCCESS] Modal Cloud CPU rendered 3D short to: {final_output_mp4} ({res['size'] / (1024*1024):.1f} MB)")
+
+                if modal_rendered:
+                    with open(final_output_mp4, "wb") as f:
+                        f.write(res["video_bytes"])
         except Exception as e:
-            print(f"[WARN] Modal GPU render unavailable: {e}")
-            print("  -> Attempting Modal High-Speed 4-vCPU Parallel Cloud render...")
-            try:
-                from pipeline_3d.modal_render import render_video_cpu
-                res = render_video_cpu.remote(script_data, shots_code=shots_code, fps=int(fps))
-                with open(final_output_mp4, "wb") as f:
-                    f.write(res["video_bytes"])
-                print(f"\n[SUCCESS] Modal Cloud CPU rendered 3D short to: {final_output_mp4} ({res['size'] / (1024*1024):.1f} MB)")
-                modal_rendered = True
-            except Exception as e2:
-                print(f"[WARN] Modal Cloud CPU also failed: {e2}. Falling back to standard runner...")
+            print(f"[WARN] Modal Cloud render failed: {e}. Falling back to standard runner...")
 
     if not modal_rendered:
         # 2. Synthesize Voiceover via Kokoro TTS
